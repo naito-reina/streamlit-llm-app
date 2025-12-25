@@ -1,45 +1,136 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
-import os
+import streamlit as st
 from openai import OpenAI
+import os
 
-app = Flask(__name__)
-CORS(app)
+# ページ設定
+st.set_page_config(
+    page_title="AIチャットボット",
+    page_icon="🤖",
+    layout="wide"
+)
 
-# OpenAIクライアントの初期化
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    try:
-        data = request.json
-        user_message = data.get('message', '')
-        
-        if not user_message:
-            return jsonify({'error': 'メッセージが空です'}), 400
-        
-        # OpenAI APIを呼び出し
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "あなたは親切で役立つアシスタントです。"},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
-        
-        ai_response = response.choices[0].message.content
-        
-        return jsonify({'response': ai_response})
+# OpenAI APIキーの取得関数
+def get_api_key():
+    """Streamlit Cloudのシークレットまたは環境変数からAPIキーを取得"""
+    api_key = None
     
+    # Streamlit Cloudのシークレットから取得を試みる
+    try:
+        if hasattr(st, 'secrets') and st.secrets:
+            api_key = st.secrets.get("OPENAI_API_KEY")
+    except (KeyError, AttributeError, TypeError):
+        pass
+    
+    # シークレットがない場合は環境変数から取得
+    if not api_key:
+        api_key = os.getenv('OPENAI_API_KEY')
+    
+    return api_key
+
+# APIキーの取得
+api_key = get_api_key()
+
+# APIキーが設定されていない場合の処理
+if not api_key:
+    st.error("⚠️ OpenAI APIキーが設定されていません。")
+    st.info("""
+    **APIキーの設定方法：**
+    
+    1. **Streamlit Cloudの場合：**
+       - 「Manage app」→「Secrets」で以下を追加：
+       ```
+       OPENAI_API_KEY=your_api_key_here
+       ```
+    
+    2. **ローカル実行の場合：**
+       - `.streamlit/secrets.toml`ファイルを作成（または環境変数を設定）
+       ```
+       OPENAI_API_KEY = "your_api_key_here"
+       ```
+    """)
+    st.stop()
+
+# OpenAIクライアントの初期化（グローバル変数ではなく、関数内で使用）
+def get_openai_client():
+    """OpenAIクライアントを取得"""
+    if not api_key:
+        return None
+    try:
+        return OpenAI(api_key=api_key)
     except Exception as e:
-        return jsonify({'error': f'エラーが発生しました: {str(e)}'}), 500
+        st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
+        return None
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+client = get_openai_client()
+if client is None:
+    st.stop()
 
+# セッション状態の初期化
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# チャット履歴の表示
+chat_container = st.container()
+with chat_container:
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+# ユーザー入力
+if prompt := st.chat_input("メッセージを入力してください..."):
+    # ユーザーメッセージを追加
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    # AI応答を生成
+    with st.chat_message("assistant"):
+        with st.spinner("考え中..."):
+            try:
+                # 会話履歴を構築
+                messages_for_api = [
+                    {"role": "system", "content": "あなたは親切で役立つアシスタントです。日本語で丁寧に回答してください。"}
+                ]
+                # 直近の会話履歴を追加（最新10件まで）
+                for msg in st.session_state.messages[-10:]:
+                    messages_for_api.append({"role": msg["role"], "content": msg["content"]})
+                
+                # OpenAI APIを呼び出し
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages_for_api,
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                
+                ai_response = response.choices[0].message.content
+                st.markdown(ai_response)
+                
+                # AI応答をセッション状態に追加
+                st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                
+            except Exception as e:
+                error_message = f"エラーが発生しました: {str(e)}"
+                st.error(error_message)
+                st.session_state.messages.append({"role": "assistant", "content": error_message})
+
+# サイドバー
+with st.sidebar:
+    st.header("⚙️ 設定")
+    
+    # チャット履歴のクリア
+    if st.button("🗑️ チャット履歴をクリア", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.markdown("---")
+    st.info("""
+    **使い方：**
+    1. 下のテキストボックスにメッセージを入力
+    2. Enterキーを押すか送信ボタンをクリック
+    3. AIからの返信が表示されます
+    
+    **注意：**
+    - OpenAI APIの使用には料金がかかる場合があります
+    - チャット履歴は最新10件まで保持されます
+    """)
