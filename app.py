@@ -29,8 +29,13 @@ def get_api_key():
     # Streamlit Cloudのシークレットから取得を試みる
     try:
         if hasattr(st, 'secrets') and st.secrets:
-            api_key = st.secrets.get("OPENAI_API_KEY")
-    except (KeyError, AttributeError, TypeError):
+            # 複数の方法で取得を試みる
+            if "OPENAI_API_KEY" in st.secrets:
+                api_key = st.secrets["OPENAI_API_KEY"]
+            elif hasattr(st.secrets, 'get'):
+                api_key = st.secrets.get("OPENAI_API_KEY")
+    except (KeyError, AttributeError, TypeError, Exception) as e:
+        # デバッグ用（本番環境ではコメントアウト推奨）
         pass
     
     # シークレットがない場合は環境変数から取得
@@ -48,23 +53,32 @@ if not api_key:
     st.info("""
     **APIキーの設定方法：**
     
-    1. **ローカル実行の場合（推奨）：**
-       - プロジェクトルートに`.env`ファイルを作成し、以下を追加：
-       ```
-       OPENAI_API_KEY=your_api_key_here
-       ```
+    **ローカル実行の場合（推奨）：**
     
-    2. **Streamlit Cloudの場合：**
-       - 「Manage app」→「Secrets」で以下を追加：
+    1. プロジェクトルート（`app.py`と同じディレクトリ）に`.env`ファイルを作成
+    2. 以下の形式でご自身のOpenAI APIキーを記述：
        ```
-       OPENAI_API_KEY=your_api_key_here
+       OPENAI_API_KEY=ご自身のOpenAI APIキー
        ```
+    3. 文字列をクォーテーションで囲む必要はありません
+    4. ファイルを保存して、アプリを再起動してください
     
-    3. **その他の方法：**
-       - `.streamlit/secrets.toml`ファイルを作成（または環境変数を設定）
-       ```
+    **Streamlit Cloudの場合：**
+    
+    1. Streamlit Cloudのダッシュボードでアプリを選択
+    2. 「Manage app」→「Secrets」をクリック
+    3. 以下のいずれかの形式で追加：
+       ```toml
        OPENAI_API_KEY = "your_api_key_here"
        ```
+       または
+       ```
+       OPENAI_API_KEY=your_api_key_here
+       ```
+    4. 「Save」をクリックして保存
+    5. アプリが自動的に再デプロイされるまで数秒待つ
+    
+    **詳細な手順は [`SETUP.md`](SETUP.md) を参照してください。**
     """)
     st.stop()
 

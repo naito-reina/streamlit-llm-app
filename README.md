@@ -13,30 +13,21 @@ pip install -r requirements.txt
 
 2. OpenAI APIキーを設定:
 
-**方法1: .envファイルを使用（推奨）**
-- プロジェクトルート（`app.py`と同じディレクトリ）に`.env`ファイルを作成:
-```
-OPENAI_API_KEY=your_api_key_here
-```
-**注意**: `.env`ファイルには実際のAPIキーを設定してください。
+**手順1: 「.env」ファイルの作成**
+- プロジェクトルート（`app.py`と同じディレクトリ）に`.env`という名前のファイルを作成してください。
 
-**方法2: Streamlitのシークレットファイルを使用**
-- `.streamlit/secrets.toml`ファイルを作成:
-```toml
-OPENAI_API_KEY = "your_api_key_here"
+**手順2: OpenAI APIキーの記述**
+- 作成した`.env`ファイルに、以下の形式でご自身のOpenAI APIキーを記述してください：
 ```
-
-**方法3: 環境変数を使用**
-```bash
-# Windows (コマンドプロンプト)
-set OPENAI_API_KEY=your_api_key_here
-
-# Windows (PowerShell)
-$env:OPENAI_API_KEY="your_api_key_here"
-
-# Linux/Mac
-export OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=ご自身のOpenAI APIキー
 ```
+- 「ご自身のOpenAI APIキー」の部分を、実際のAPIキーに書き換えてください
+- 文字列をクォーテーションで囲む必要はありません
+- 環境変数名は「OPENAI_API_KEY」とする必要があります
+
+**注意**: 
+- `.env`ファイルは`.gitignore`に含まれているため、Gitにコミットされません（安全です）
+- 詳細な手順は [`SETUP.md`](SETUP.md) を参照してください
 
 3. アプリケーションを起動:
 ```bash
@@ -44,6 +35,8 @@ streamlit run app.py
 ```
 
 4. ブラウザで自動的に開きます（通常は `http://localhost:8501`）
+
+**補足**: `app.py`には既に`python-dotenv`を使用して`.env`ファイルから環境変数を読み込むコードが含まれています。Google Colaboratoryでシークレット機能を使用していたのと同じように、`.env`ファイルに記述したAPIキーが自動的に参照されます。
 
 ### Streamlit Cloudでのデプロイ
 
@@ -104,8 +97,14 @@ streamlit run app.py
 
 ### APIキーエラーが表示される場合
 
-- Streamlit Cloud: 「Manage app」→「Secrets」でAPIキーが正しく設定されているか確認
-- ローカル環境: 
-  - `.env`ファイルがプロジェクトルートに存在し、`OPENAI_API_KEY=your_actual_api_key`の形式で設定されているか確認
-  - `.streamlit/secrets.toml`または環境変数が正しく設定されているか確認
-  - `python-dotenv`パッケージがインストールされているか確認（`pip install python-dotenv`）
+**ローカル環境の場合：**
+1. `.env`ファイルがプロジェクトルート（`app.py`と同じディレクトリ）に存在するか確認
+2. `.env`ファイルの内容が`OPENAI_API_KEY=your_actual_api_key`の形式で正しく設定されているか確認（クォーテーションは不要）
+3. `python-dotenv`パッケージがインストールされているか確認（`pip install python-dotenv`または`pip install -r requirements.txt`）
+4. アプリを再起動してください
+
+**Streamlit Cloudの場合：**
+- 「Manage app」→「Secrets」でAPIキーが正しく設定されているか確認
+- Secretsを保存後、アプリが自動的に再デプロイされるまで数秒待ってから確認してください
+
+詳細な手順は [`SETUP.md`](SETUP.md) を参照してください。
