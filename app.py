@@ -28,14 +28,19 @@ def get_api_key():
     
     # Streamlit Cloudのシークレットから取得を試みる
     try:
-        if hasattr(st, 'secrets') and st.secrets:
-            # 複数の方法で取得を試みる
-            if "OPENAI_API_KEY" in st.secrets:
+        if hasattr(st, 'secrets'):
+            # Streamlit CloudのSecretsは辞書のようにアクセス可能
+            # まず、直接アクセスを試みる
+            try:
                 api_key = st.secrets["OPENAI_API_KEY"]
-            elif hasattr(st.secrets, 'get'):
-                api_key = st.secrets.get("OPENAI_API_KEY")
-    except (KeyError, AttributeError, TypeError, Exception) as e:
-        # デバッグ用（本番環境ではコメントアウト推奨）
+            except (KeyError, TypeError):
+                # 辞書形式でない場合、getメソッドを試す
+                try:
+                    api_key = st.secrets.get("OPENAI_API_KEY")
+                except (AttributeError, TypeError):
+                    pass
+    except Exception:
+        # エラーが発生した場合は無視して次へ
         pass
     
     # シークレットがない場合は環境変数から取得
@@ -65,18 +70,27 @@ if not api_key:
     
     **Streamlit Cloudの場合：**
     
-    1. Streamlit Cloudのダッシュボードでアプリを選択
-    2. 「Manage app」→「Secrets」をクリック
-    3. 以下のいずれかの形式で追加：
+    1. https://share.streamlit.io/ にアクセスしてログイン
+    2. ダッシュボードでアプリを選択
+    3. 「Manage app」ボタンをクリック
+    4. 「Secrets」タブ（またはセクション）をクリック
+    5. テキストエリアに以下のいずれかの形式で**正確に**入力：
        ```toml
-       OPENAI_API_KEY = "your_api_key_here"
+       OPENAI_API_KEY = "sk-あなたの実際のAPIキー"
        ```
        または
        ```
-       OPENAI_API_KEY=your_api_key_here
+       OPENAI_API_KEY=sk-あなたの実際のAPIキー
        ```
-    4. 「Save」をクリックして保存
-    5. アプリが自動的に再デプロイされるまで数秒待つ
+    6. **必ず「Save」ボタンをクリック**して保存（重要！）
+    7. 保存後、アプリが自動的に再デプロイされます（通常10-30秒）
+    8. 再デプロイが完了するまで待ってから、このページをリロードしてください
+    
+    **よくある間違い：**
+    - Secretsを入力したが、保存ボタンを押していない
+    - 引用符の種類が間違っている（`'`ではなく`"`を使用）
+    - 余分なスペースや改行が入っている
+    - 再デプロイを待たずに確認している
     
     **詳細な手順は [`SETUP.md`](SETUP.md) を参照してください。**
     """)
