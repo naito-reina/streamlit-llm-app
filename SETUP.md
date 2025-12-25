@@ -25,6 +25,19 @@
 
 ### ローカル環境で設定する場合
 
+**方法1: .envファイルを使用（推奨）**
+
+1. プロジェクトルート（`app.py`と同じディレクトリ）に`.env`ファイルを作成
+2. 以下の内容を記述：
+   ```
+   OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+   （`sk-`で始まる実際のAPIキーに置き換えてください）
+3. ファイルを保存
+4. アプリを再起動
+
+**方法2: Streamlitのシークレットファイルを使用**
+
 1. `.streamlit/secrets.toml`ファイルを作成
 2. 以下の内容を記述：
    ```toml
@@ -34,7 +47,7 @@
 3. ファイルを保存
 4. アプリを再起動
 
-**注意**: `.streamlit/secrets.toml`ファイルは`.gitignore`に含まれているため、Gitにコミットされません（安全です）。
+**注意**: `.env`ファイルと`.streamlit/secrets.toml`ファイルは`.gitignore`に含まれているため、Gitにコミットされません（安全です）。
 
 ## 確認方法
 

@@ -2,9 +2,17 @@ import streamlit as st
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 # .envファイルから環境変数を読み込む
-load_dotenv()
+# app.pyと同じディレクトリの.envファイルを読み込む
+env_path = Path(__file__).parent / '.env'
+# .envファイルが存在する場合は読み込む
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    # .envファイルが存在しない場合も、デフォルトの場所を試す
+    load_dotenv()
 
 # ページ設定
 st.set_page_config(

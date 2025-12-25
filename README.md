@@ -13,13 +13,20 @@ pip install -r requirements.txt
 
 2. OpenAI APIキーを設定:
 
-**方法1: Streamlitのシークレットファイルを使用（推奨）**
+**方法1: .envファイルを使用（推奨）**
+- プロジェクトルート（`app.py`と同じディレクトリ）に`.env`ファイルを作成:
+```
+OPENAI_API_KEY=your_api_key_here
+```
+**注意**: `.env`ファイルには実際のAPIキーを設定してください。
+
+**方法2: Streamlitのシークレットファイルを使用**
 - `.streamlit/secrets.toml`ファイルを作成:
 ```toml
 OPENAI_API_KEY = "your_api_key_here"
 ```
 
-**方法2: 環境変数を使用**
+**方法3: 環境変数を使用**
 ```bash
 # Windows (コマンドプロンプト)
 set OPENAI_API_KEY=your_api_key_here
@@ -76,4 +83,7 @@ OPENAI_API_KEY=your_api_key_here
 ### APIキーエラーが表示される場合
 
 - Streamlit Cloud: 「Manage app」→「Secrets」でAPIキーが正しく設定されているか確認
-- ローカル環境: `.streamlit/secrets.toml`または環境変数が正しく設定されているか確認
+- ローカル環境: 
+  - `.env`ファイルがプロジェクトルートに存在し、`OPENAI_API_KEY=your_actual_api_key`の形式で設定されているか確認
+  - `.streamlit/secrets.toml`または環境変数が正しく設定されているか確認
+  - `python-dotenv`パッケージがインストールされているか確認（`pip install python-dotenv`）
