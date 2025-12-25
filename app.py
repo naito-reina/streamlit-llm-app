@@ -1,6 +1,10 @@
 import streamlit as st
 from openai import OpenAI
 import os
+from dotenv import load_dotenv
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
 
 # ページ設定
 st.set_page_config(
@@ -36,13 +40,19 @@ if not api_key:
     st.info("""
     **APIキーの設定方法：**
     
-    1. **Streamlit Cloudの場合：**
+    1. **ローカル実行の場合（推奨）：**
+       - プロジェクトルートに`.env`ファイルを作成し、以下を追加：
+       ```
+       OPENAI_API_KEY=your_api_key_here
+       ```
+    
+    2. **Streamlit Cloudの場合：**
        - 「Manage app」→「Secrets」で以下を追加：
        ```
        OPENAI_API_KEY=your_api_key_here
        ```
     
-    2. **ローカル実行の場合：**
+    3. **その他の方法：**
        - `.streamlit/secrets.toml`ファイルを作成（または環境変数を設定）
        ```
        OPENAI_API_KEY = "your_api_key_here"
