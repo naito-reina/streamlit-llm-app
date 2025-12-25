@@ -47,15 +47,37 @@ streamlit run app.py
 
 ### Streamlit Cloudでのデプロイ
 
-1. GitHubリポジトリにコードをプッシュ
-2. Streamlit Cloud（https://streamlit.io/cloud）にログイン
-3. 「New app」をクリック
-4. リポジトリとブランチを選択
-5. 「Advanced settings」を開き、「Secrets」に以下を追加:
-```
-OPENAI_API_KEY=your_api_key_here
-```
-6. 「Deploy」をクリック
+**詳細な手順は [`DEPLOY.md`](DEPLOY.md) を参照してください。**
+
+簡単な手順：
+
+1. **GitHubリポジトリにコードをプッシュ**
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
+   **重要**: `.env`ファイルは`.gitignore`に含まれているため、Gitにコミットされません（安全です）。
+
+2. **Streamlit Cloudにログイン**
+   - https://share.streamlit.io/ にアクセス
+   - GitHubアカウントでログイン
+
+3. **新しいアプリを作成**
+   - 「New app」をクリック
+   - リポジトリとブランチ（`main`）を選択
+   - Main file path: `app.py` を指定
+
+4. **APIキーをSecretsに設定**
+   - 「Advanced settings」→「Secrets」を開く
+   - 以下を追加：
+     ```
+     OPENAI_API_KEY=sk-あなたの実際のAPIキー
+     ```
+
+5. **デプロイ**
+   - 「Deploy」をクリック
+   - デプロイ完了後、アプリのURLが表示されます
 
 ## 使い方
 
