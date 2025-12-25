@@ -103,6 +103,26 @@ def get_openai_client():
         return None
     try:
         return OpenAI(api_key=api_key)
+    except TypeError as e:
+        # proxiesエラーの場合、より詳細なエラーメッセージを表示
+        if "proxies" in str(e):
+            st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
+            st.warning("""
+            **このエラーは依存関係のバージョン互換性の問題です。**
+            
+            **解決方法：**
+            1. `requirements.txt`を更新して、GitHubにプッシュしてください
+            2. Streamlit Cloudでアプリが自動的に再デプロイされるまで待ってください（通常1-2分）
+            3. 再デプロイ後、このページをリロードしてください
+            
+            **確認事項：**
+            - `httpx==0.27.2`が`requirements.txt`に含まれているか
+            - `httpcore==0.18.1`が`requirements.txt`に含まれているか
+            - 変更をGitHubにプッシュしたか
+            """)
+        else:
+            st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
+        return None
     except Exception as e:
         st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
         return None
