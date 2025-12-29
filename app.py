@@ -143,6 +143,43 @@ EXPERT_SYSTEM_MESSAGES = {
     "営業": "あなたは「社内営業ヘルプデスク一次受付ボット」です。目的は、社内メンバーの自己解決を促し、営業部への問い合わせ件数を減らすことです。"
 }
 
+# サイドバー
+with st.sidebar:
+    st.header("⚙️ 設定")
+    
+    # 専門家の選択
+    st.subheader("👤 専門家の選択")
+    expert_type = st.radio(
+        "専門家の種類を選択してください：",
+        options=["法務", "営業"],
+        index=0 if st.session_state.expert_type == "法務" else 1,
+        key="expert_radio"
+    )
+    
+    # 専門家が変更された場合、セッション状態を更新
+    if expert_type != st.session_state.expert_type:
+        st.session_state.expert_type = expert_type
+        st.info(f"専門家を「{expert_type}」に変更しました。")
+    
+    st.markdown("---")
+    
+    # チャット履歴のクリア
+    if st.button("🗑️ チャット履歴をクリア", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.markdown("---")
+    st.info("""
+    **使い方：**
+    1. 下のテキストボックスにメッセージを入力
+    2. Enterキーを押すか送信ボタンをクリック
+    3. AIからの返信が表示されます
+    
+    **注意：**
+    - OpenAI APIの使用には料金がかかる場合があります
+    - チャット履歴は最新10件まで保持されます
+    """)
+
 # チャット履歴の表示
 chat_container = st.container()
 with chat_container:
@@ -192,40 +229,3 @@ if prompt := st.chat_input("メッセージを入力してください..."):
                 error_message = f"エラーが発生しました: {str(e)}"
                 st.error(error_message)
                 st.session_state.messages.append({"role": "assistant", "content": error_message})
-
-# サイドバー
-with st.sidebar:
-    st.header("⚙️ 設定")
-    
-    # 専門家の選択
-    st.subheader("👤 専門家の選択")
-    expert_type = st.radio(
-        "専門家の種類を選択してください：",
-        options=["法務", "営業"],
-        index=0 if st.session_state.expert_type == "法務" else 1,
-        key="expert_radio"
-    )
-    
-    # 専門家が変更された場合、セッション状態を更新
-    if expert_type != st.session_state.expert_type:
-        st.session_state.expert_type = expert_type
-        st.info(f"専門家を「{expert_type}」に変更しました。")
-    
-    st.markdown("---")
-    
-    # チャット履歴のクリア
-    if st.button("🗑️ チャット履歴をクリア", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
-    
-    st.markdown("---")
-    st.info("""
-    **使い方：**
-    1. 下のテキストボックスにメッセージを入力
-    2. Enterキーを押すか送信ボタンをクリック
-    3. AIからの返信が表示されます
-    
-    **注意：**
-    - OpenAI APIの使用には料金がかかる場合があります
-    - チャット履歴は最新10件まで保持されます
-    """)
