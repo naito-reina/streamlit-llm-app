@@ -143,6 +143,54 @@ EXPERT_SYSTEM_MESSAGES = {
     "営業": "あなたは「社内営業ヘルプデスク一次受付ボット」です。目的は、社内メンバーの自己解決を促し、営業部への問い合わせ件数を減らすことです。"
 }
 
+def generate_response(user_input: str, expert_type: str, messages: list, chat_model: ChatOpenAI) -> str:
+    """
+    入力されたテキストと専門家タイプから回答を生成する関数
+    
+    Args:
+        user_input: ユーザーが入力したテキスト
+        expert_type: ラジオボタンで選択された専門家タイプ（"法務"または"営業"）
+        messages: 会話履歴のリスト（辞書形式: {"role": "user"/"assistant", "content": "..."}）
+        chat_model: LangChainのChatOpenAIモデル
+    
+    Returns:
+        str: AIの応答テキスト
+    
+    Raises:
+        Exception: API呼び出し時にエラーが発生した場合
+    """
+    # 選択された専門家に応じたシステムメッセージを取得
+    system_message_content = EXPERT_SYSTEM_MESSAGES.get(
+        expert_type,
+        "あなたは親切で役立つアシスタントです。日本語で丁寧に回答してください。"
+    )
+    
+    # ChatPromptTemplateを作成
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", system_message_content),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{input}")
+    ])
+    
+    # 会話履歴をLangChainのメッセージ形式に変換（最新10件まで）
+    chat_history = []
+    for msg in messages[-10:-1]:  # 最後のユーザーメッセージは除く
+        if msg["role"] == "user":
+            chat_history.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            chat_history.append(AIMessage(content=msg["content"]))
+    
+    # Chainを作成して実行
+    chain = prompt_template | chat_model
+    
+    # 応答を生成
+    response = chain.invoke({
+        "chat_history": chat_history,
+        "input": user_input
+    })
+    
+    return response.content
+
 # サイドバー
 with st.sidebar:
     st.header("⚙️ 設定")
@@ -198,37 +246,13 @@ if user_input := st.chat_input("メッセージを入力してください..."):
     with st.chat_message("assistant"):
         with st.spinner("考え中..."):
             try:
-                # 選択された専門家に応じたシステムメッセージを取得
-                system_message_content = EXPERT_SYSTEM_MESSAGES.get(
-                    st.session_state.expert_type,
-                    "あなたは親切で役立つアシスタントです。日本語で丁寧に回答してください。"
+                # 関数を呼び出して応答を生成
+                ai_response = generate_response(
+                    user_input=user_input,
+                    expert_type=st.session_state.expert_type,
+                    messages=st.session_state.messages,
+                    chat_model=chat_model
                 )
-                
-                # ChatPromptTemplateを作成
-                prompt_template = ChatPromptTemplate.from_messages([
-                    ("system", system_message_content),
-                    MessagesPlaceholder(variable_name="chat_history"),
-                    ("human", "{input}")
-                ])
-                
-                # 会話履歴をLangChainのメッセージ形式に変換（最新10件まで）
-                chat_history = []
-                for msg in st.session_state.messages[-10:-1]:  # 最後のユーザーメッセージは除く
-                    if msg["role"] == "user":
-                        chat_history.append(HumanMessage(content=msg["content"]))
-                    elif msg["role"] == "assistant":
-                        chat_history.append(AIMessage(content=msg["content"]))
-                
-                # Chainを作成して実行
-                chain = prompt_template | chat_model
-                
-                # 応答を生成
-                response = chain.invoke({
-                    "chat_history": chat_history,
-                    "input": user_input
-                })
-                
-                ai_response = response.content
                 st.markdown(ai_response)
                 
                 # AI応答をセッション状態に追加
