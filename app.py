@@ -1,5 +1,7 @@
 import streamlit as st
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -96,39 +98,37 @@ if not api_key:
     """)
     st.stop()
 
-# OpenAIクライアントの初期化（グローバル変数ではなく、関数内で使用）
-def get_openai_client():
-    """OpenAIクライアントを取得"""
+# LangChain ChatOpenAIの初期化
+def get_chat_model():
+    """LangChain ChatOpenAIモデルを取得"""
     if not api_key:
         return None
     try:
-        return OpenAI(api_key=api_key)
-    except TypeError as e:
-        # proxiesエラーの場合、より詳細なエラーメッセージを表示
-        if "proxies" in str(e):
-            st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
-            st.warning("""
-            **このエラーは依存関係のバージョン互換性の問題です。**
-            
-            **解決方法：**
-            1. `requirements.txt`を更新して、GitHubにプッシュしてください
-            2. Streamlit Cloudでアプリが自動的に再デプロイされるまで待ってください（通常1-2分）
-            3. 再デプロイ後、このページをリロードしてください
-            
-            **確認事項：**
-            - `httpx==0.27.2`が`requirements.txt`に含まれているか
-            - `httpcore==0.18.1`が`requirements.txt`に含まれているか
-            - 変更をGitHubにプッシュしたか
-            """)
-        else:
-            st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
-        return None
+        return ChatOpenAI(
+            model="gpt-3.5-turbo",
+            temperature=0.7,
+            max_tokens=500,
+            api_key=api_key
+        )
     except Exception as e:
-        st.error(f"OpenAIクライアントの初期化に失敗しました: {str(e)}")
+        st.error(f"ChatOpenAIモデルの初期化に失敗しました: {str(e)}")
+        st.warning("""
+        **このエラーは依存関係のバージョン互換性の問題です。**
+        
+        **解決方法：**
+        1. `requirements.txt`を更新して、GitHubにプッシュしてください
+        2. Streamlit Cloudでアプリが自動的に再デプロイされるまで待ってください（通常1-2分）
+        3. 再デプロイ後、このページをリロードしてください
+        
+        **確認事項：**
+        - `langchain-openai>=0.1.0`が`requirements.txt`に含まれているか
+        - `langchain-core>=0.1.0`が`requirements.txt`に含まれているか
+        - 変更をGitHubにプッシュしたか
+        """)
         return None
 
-client = get_openai_client()
-if client is None:
+chat_model = get_chat_model()
+if chat_model is None:
     st.stop()
 
 # セッション状態の初期化
@@ -188,38 +188,47 @@ with chat_container:
             st.markdown(message["content"])
 
 # ユーザー入力
-if prompt := st.chat_input("メッセージを入力してください..."):
+if user_input := st.chat_input("メッセージを入力してください..."):
     # ユーザーメッセージを追加
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(user_input)
     
     # AI応答を生成
     with st.chat_message("assistant"):
         with st.spinner("考え中..."):
             try:
-                # 会話履歴を構築
                 # 選択された専門家に応じたシステムメッセージを取得
-                system_message = EXPERT_SYSTEM_MESSAGES.get(
+                system_message_content = EXPERT_SYSTEM_MESSAGES.get(
                     st.session_state.expert_type,
                     "あなたは親切で役立つアシスタントです。日本語で丁寧に回答してください。"
                 )
-                messages_for_api = [
-                    {"role": "system", "content": system_message}
-                ]
-                # 直近の会話履歴を追加（最新10件まで）
-                for msg in st.session_state.messages[-10:]:
-                    messages_for_api.append({"role": msg["role"], "content": msg["content"]})
                 
-                # OpenAI APIを呼び出し
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=messages_for_api,
-                    temperature=0.7,
-                    max_tokens=500
-                )
+                # ChatPromptTemplateを作成
+                prompt_template = ChatPromptTemplate.from_messages([
+                    ("system", system_message_content),
+                    MessagesPlaceholder(variable_name="chat_history"),
+                    ("human", "{input}")
+                ])
                 
-                ai_response = response.choices[0].message.content
+                # 会話履歴をLangChainのメッセージ形式に変換（最新10件まで）
+                chat_history = []
+                for msg in st.session_state.messages[-10:-1]:  # 最後のユーザーメッセージは除く
+                    if msg["role"] == "user":
+                        chat_history.append(HumanMessage(content=msg["content"]))
+                    elif msg["role"] == "assistant":
+                        chat_history.append(AIMessage(content=msg["content"]))
+                
+                # Chainを作成して実行
+                chain = prompt_template | chat_model
+                
+                # 応答を生成
+                response = chain.invoke({
+                    "chat_history": chat_history,
+                    "input": user_input
+                })
+                
+                ai_response = response.content
                 st.markdown(ai_response)
                 
                 # AI応答をセッション状態に追加
